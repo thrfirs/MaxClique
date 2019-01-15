@@ -6,6 +6,7 @@
 #include<map>
 #include<ctime>
 #include<cassert>
+#include<vector>
 using namespace std;
 
 /******************************************************************************
@@ -50,42 +51,100 @@ const int maxm=maxn*maxn;
 #define pop(stack) (stack[--stack##_p])
 #define push(x, stack) (stack[stack##_p++]=(x))
 
-int n,m;
+class MaxCliqueFinder{
+private:
+	
+	int on;
+	bool oe[maxn][maxn];
+	map<int,int>mp;
+	int mp_num[maxn];
+	
+	int n,m;
+	
+	struct bEdge{
+		int u,v;
+	}be[maxm];
+	int edge_weight[maxm];
+	int deg[maxn];
+	int edge_ind[maxn][maxn];
+	int adj[maxn][maxn];
+	
+	ll step;
+	ll timestamp[maxn];
+	
+	int dscore[maxn];
+	
+	int nc;
+	bool in_cover[maxn];
+	int nr;
+	int remove_cand[maxn];
+	int remove_cand_ind[maxn];
+	
+	int best_nc;
+	bool best_in_cover[maxn];
+	
+	int uncover_stack[maxm];
+	int uncover_stack_p;
+	int uncover_stack_ind[maxm];
+	
+	bool conf_change[maxn];
+	bool tabu[maxn];
+	
+	int tmp_nc;
+	bool tmp_in_cover[maxn];
+	int edge_ind_seq[maxm];
+	
+	
+	void ResetRemoveCand();
+	inline void Uncover(int e);
+	inline void Cover(int e);
+	void Add(int p);
+	void Remove(int p);
+	int ChooseRemove_MinLoss();
+	int ChooseRemove_BMS(int times);
+	int ChooseAddV(int remove_v1,int remove_v2);
+	inline void UpdateBestSolution();
+	void RemoveRedundant();
+	void ConstructVC(int tries);
+	void UpdateEdgeWeight();
+	void LocalSearch(int iters);
+	
+	void InitComplimentGraph();
+	void FindMinVertexCover();
+	
+public:
 
-struct bEdge{
-	int u,v;
-}be[maxm];
-int edge_weight[maxm];
-int deg[maxn];
-int edge_ind[maxn][maxn];
-int adj[maxn][maxn];
+	void Init();
+	void AddVertex(int u);
+	void AddEdge(int u,int v);
+	vector<int>FindMaxClique();
+	
+};
 
-ll step;
-ll timestamp[maxn];
-
-int dscore[maxn];
-
-int nc;
-bool in_cover[maxn];
-int nr;
-int remove_cand[maxn];
-int remove_cand_ind[maxn];
-
-int best_nc;
-bool best_in_cover[maxn];
-
-int uncover_stack[maxm];
-int uncover_stack_p;
-int uncover_stack_ind[maxm];
-
-bool conf_change[maxn];
-bool tabu[maxn];
-
-int tmp_nc;
-bool tmp_in_cover[maxn];
-int edge_ind_seq[maxm];
-
-void ResetRemoveCand(){
+void MaxCliqueFinder::Init(){
+	on=0;
+	memset(oe,0,sizeof(oe));
+	mp.clear();
+	memset(mp_num,0,sizeof(mp_num));
+	n=m=0;
+	memset(deg,0,sizeof(deg));
+	step=0;
+	memset(timestamp,0,sizeof(timestamp));
+	memset(dscore,0,sizeof(dscore));
+	nc=0;
+	memset(in_cover,0,sizeof(in_cover));
+	nr=0;
+	memset(remove_cand,0,sizeof(remove_cand));
+	memset(remove_cand_ind,0,sizeof(remove_cand_ind));
+	best_nc=0;
+	memset(best_in_cover,0,sizeof(best_in_cover));
+	uncover_stack_p=0;
+	memset(conf_change,0,sizeof(conf_change));
+	memset(tabu,0,sizeof(tabu));
+	tmp_nc=0;
+	memset(tmp_in_cover,0,sizeof(tmp_in_cover));
+}
+void MaxCliqueFinder::ResetRemoveCand(){
 	int i;
 	nr=0;
 	for(i=1;i<=n;++i){
@@ -97,18 +156,18 @@ void ResetRemoveCand(){
 		}
 	}
 }
-inline void Uncover(int e){
+inline void MaxCliqueFinder::Uncover(int e){
 	uncover_stack_ind[e]=uncover_stack_p;
 	push(e,uncover_stack);
 }
-inline void Cover(int e){
+inline void MaxCliqueFinder::Cover(int e){
 	int st_ind,last_uncover_edge;
 	last_uncover_edge=pop(uncover_stack);
 	st_ind=uncover_stack_ind[e];
 	uncover_stack[st_ind]=last_uncover_edge;
 	uncover_stack_ind[last_uncover_edge]=st_ind;
 }
-void Add(int p){
+void MaxCliqueFinder::Add(int p){
 	int i,e,v,deg_p=deg[p];
 	
 	in_cover[p]=true;
@@ -131,7 +190,7 @@ void Add(int p){
 		}
 	}
 }
-void Remove(int p){
+void MaxCliqueFinder::Remove(int p){
 	if(p==-1)return;
 	
 	int i,e,v,deg_p=deg[p];
@@ -161,7 +220,7 @@ void Remove(int p){
 		}
 	}
 }
-int ChooseRemove_MinLoss(){
+int MaxCliqueFinder::ChooseRemove_MinLoss(){
 	if(!nr)return -1;
 	
 	int i,v,v_loss;
@@ -184,7 +243,7 @@ int ChooseRemove_MinLoss(){
 	
 	return min_v;
 }
-int ChooseRemove_BMS(int times){
+int MaxCliqueFinder::ChooseRemove_BMS(int times){
 	if(!nr)return -1;
 
 	uniform_int_distribution<> rand(1, nr);
@@ -208,7 +267,7 @@ int ChooseRemove_BMS(int times){
 	/* tabu[remove_v] is possibly true */
 	return remove_v;
 }
-int ChooseAddV(int remove_v1,int remove_v2){
+int MaxCliqueFinder::ChooseAddV(int remove_v1,int remove_v2){
 	int i,v,v_gain;
 	int max_v=-1,max_gain=0;
 	int p_deg,*p_adj;
@@ -259,13 +318,13 @@ int ChooseAddV(int remove_v1,int remove_v2){
 	}
 	return max_v;
 }
-void UpdateBestSolution(){
+inline void MaxCliqueFinder::UpdateBestSolution(){
 	if(nc<best_nc){
 		best_nc=nc;
 		memcpy(best_in_cover,in_cover,sizeof(bool)*(n+1));
 	}
 }
-void RemoveRedundant(){
+void MaxCliqueFinder::RemoveRedundant(){
 	int i,v;
 	for(i=1;i<=nr;++i){
 		v=remove_cand[i];
@@ -275,7 +334,7 @@ void RemoveRedundant(){
 		}
 	}
 }
-void ConstructVC(int tries){
+void MaxCliqueFinder::ConstructVC(int tries){
 	int i;
 	int u,v;
 	
@@ -320,7 +379,7 @@ void ConstructVC(int tries){
 	best_nc=nc;
 	memcpy(best_in_cover,in_cover,sizeof(bool)*(n+1));
 }
-void UpdateEdgeWeight(){
+void MaxCliqueFinder::UpdateEdgeWeight(){
 	int i,e;
 	for(i=0;i<uncover_stack_p;++i){
 		e=uncover_stack[i];
@@ -330,7 +389,7 @@ void UpdateEdgeWeight(){
 	}
 	
 }
-void LocalSearch(int iters){
+void MaxCliqueFinder::LocalSearch(int iters){
 	int add_v,remove_v1,remove_v2;
 	
 	step=0;
@@ -359,22 +418,7 @@ void LocalSearch(int iters){
 	}
 }
 
-//----------------------------------------------------------------
-
-int on,om;
-bool oe[maxn][maxn];
-
-int n_clique;
-int clique[maxn];
-
-void Input(){
-	int i,u,v;
-	for(i=1;i<=om;++i){
-		u=readnum(),v=readnum();
-		oe[u][v]=oe[v][u]=true;
-	}
-}
-void InitRevGraph(){
+void MaxCliqueFinder::InitComplimentGraph(){
 	int i,u,v;
 	
 	n=on,m=0;
@@ -393,63 +437,63 @@ void InitRevGraph(){
 	memset(conf_change,1,sizeof(conf_change));
 	fill_n(edge_weight+1,m,1);
 }
-void Work(){
+void MaxCliqueFinder::FindMinVertexCover(){
 	if(!m)return;
 	ConstructVC(ConstructVC_Max_Tries);
 	//LocalSearch(Local_Search_Iterations);
 	//LocalSearch(n*4000);
 	LocalSearch(n*n*10);
 }
-bool CheckSolution(){
-	int i,j;
-	for(i=1;i<=n_clique;++i)
-		for(j=i+1;j<=n_clique;++j)
-			if(!oe[clique[i]][clique[j]])return false;
-	return true;
+void MaxCliqueFinder::AddVertex(int u){
+	if(!mp.count(u))mp[u]=++on,mp_num[on]=u;
 }
-void PrintSolution(){
+void MaxCliqueFinder::AddEdge(int u,int v){
+	u=mp[u],v=mp[v];
+	oe[u][v]=oe[v][u]=true;
+}
+vector<int> MaxCliqueFinder::FindMaxClique(){
 	int i;
+	vector<int>max_clique;
+	
+	InitComplimentGraph();
+	FindMinVertexCover();
+	
 	for(i=1;i<=n;++i){
-		if(!best_in_cover[i])clique[++n_clique]=i;
+		if(!best_in_cover[i])max_clique.push_back(i);
 	}
-	if(CheckSolution()){
-		printf("%d\n",n_clique);
-		for(i=1;i<=n_clique;++i)printf("%d%c",clique[i]," \n"[i==n_clique]);
-	}else{
-		assert(0); // should never reach here
-		fprintf(stderr,"Something went wrong...\n");
-		printf("1\n1\n");
-	}
+	
+	return max_clique;
 }
 
+//----------------------------------------------------------------
+
+int n,m;
+
+MaxCliqueFinder finder;
+vector<int>max_clique;
+
 void Initialize(){
-	n=m=0;
-	memset(deg,0,sizeof(deg));
-	step=0;
-	memset(timestamp,0,sizeof(timestamp));
-	memset(dscore,0,sizeof(dscore));
-	nc=0;
-	memset(in_cover,0,sizeof(in_cover));
-	nr=0;
-	memset(remove_cand,0,sizeof(remove_cand));
-	memset(remove_cand_ind,0,sizeof(remove_cand_ind));
-	best_nc=0;
-	memset(best_in_cover,0,sizeof(best_in_cover));
-	uncover_stack_p=0;
-	memset(conf_change,0,sizeof(conf_change));
-	memset(tabu,0,sizeof(tabu));
-	tmp_nc=0;
-	memset(tmp_in_cover,0,sizeof(tmp_in_cover));
-	memset(oe,0,sizeof(oe));
-	n_clique=0;
-	memset(clique,0,sizeof(clique));
+	finder.Init();
+	int i,u,v;
+	for(i=1;i<=n;++i)finder.AddVertex(i);
+	for(i=1;i<=m;++i){
+		u=readnum(),v=readnum();
+		finder.AddEdge(u,v);
+	}
+}
+void Work(){
+	max_clique=finder.FindMaxClique();
+}
+void PrintSolution(){
+	printf("%d\n",max_clique.size());
+	for(int i=0;i<max_clique.size();++i){
+		printf("%d%c",max_clique[i]," \n"[i==max_clique.size()-1]);
+	}
 }
 
 int main(){
-	while((on = read_u()) && (om = read_u())){
+	while((n = read_u()) && (m = read_u())){
 		Initialize();
-		Input();
-		InitRevGraph();
 		Work();
 		PrintSolution();
 	}
