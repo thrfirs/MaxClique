@@ -12,9 +12,9 @@ using namespace std;
  * Constants to adjust
  *****************************************************************************/
 
-const unsigned int RandomSeed = 123456789;
-const int ConstructVC_Max_Tries = 50;
-const int Local_Search_Iterations = 5000000;
+const unsigned int RandomSeed = 987654321;
+const int ConstructVC_Max_Tries = 200;
+const int Local_Search_Iterations = 1000000;
 const int RemoveBMS_Max_Tries = 100;
 
 /******************************************************************************
@@ -250,7 +250,6 @@ int ChooseAddV(int remove_v1,int remove_v2){
 	return max_v;
 }
 void UpdateBestSolution(){
-	int i;
 	if(nc<best_nc){
 		best_nc=nc;
 		memcpy(best_in_cover,in_cover,sizeof(bool)*(n+1));
@@ -360,8 +359,6 @@ int clique[maxn];
 
 void Input(){
 	int i,u,v;
-	cin>>on>>om;
-	int minnum=on*2,maxnum=0;
 	for(i=1;i<=om;++i){
 		u=readnum(),v=readnum();
 		oe[u][v]=oe[v][u]=true;
@@ -389,7 +386,9 @@ void InitRevGraph(){
 void Work(){
 	if(!m)return;
 	ConstructVC(ConstructVC_Max_Tries);
-	LocalSearch(Local_Search_Iterations);
+	//LocalSearch(Local_Search_Iterations);
+	//LocalSearch(n*4000);
+	LocalSearch(n*n*10);
 }
 bool CheckSolution(){
 	int i,j;
@@ -413,13 +412,36 @@ void PrintSolution(){
 	}
 }
 
+void Initialize(){
+	n=m=0;
+	memset(deg,0,sizeof(deg));
+	step=0;
+	memset(timestamp,0,sizeof(timestamp));
+	memset(dscore,0,sizeof(dscore));
+	nc=0;
+	memset(in_cover,0,sizeof(in_cover));
+	nr=0;
+	memset(remove_cand,0,sizeof(remove_cand));
+	memset(remove_cand_ind,0,sizeof(remove_cand_ind));
+	best_nc=0;
+	memset(best_in_cover,0,sizeof(best_in_cover));
+	uncover_stack_p=0;
+	memset(conf_change,0,sizeof(conf_change));
+	memset(tabu,0,sizeof(tabu));
+	tmp_nc=0;
+	memset(tmp_in_cover,0,sizeof(tmp_in_cover));
+	memset(oe,0,sizeof(oe));
+	n_clique=0;
+	memset(clique,0,sizeof(clique));
+}
+
 int main(){
-	freopen("test.in","r",stdin);
-	Input();
-	int st=clock();
-	InitRevGraph();
-	Work();
-	PrintSolution();
-	cerr<<"Time: "<<clock()-st<<"ms."<<endl;
+	while(cin>>on>>om){
+		Initialize();
+		Input();
+		InitRevGraph();
+		Work();
+		PrintSolution();
+	}
 	return 0;
 }
