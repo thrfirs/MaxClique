@@ -1,4 +1,4 @@
-#include<iostream>
+#include<cstdio>
 #include<algorithm>
 #include<cstring>
 #include<cstdio>
@@ -22,13 +22,21 @@ const int RemoveBMS_Max_Tries = 100;
  *****************************************************************************/
  
 default_random_engine Gn(RandomSeed);
-int Rand(int x){return uniform_int_distribution<int>(0,x-1)(Gn);}
 
 int readnum(){
 	int res=0;
 	char c=getchar();
 	for(;!isdigit(c);c=getchar());
 	for(;isdigit(c);c=getchar())res=res*10+c-'0';
+	return res;
+}
+
+unsigned read_u() {
+	unsigned res = 0;
+	char c = getchar();
+	while (!isdigit(c) && c > 0) c = getchar();
+	if (c < 0) return res;
+	for (; isdigit(c); c = getchar()) res = res * 10 + c - '0';
 	return res;
 }
 
@@ -178,14 +186,16 @@ int ChooseRemove_MinLoss(){
 }
 int ChooseRemove_BMS(int times){
 	if(!nr)return -1;
+
+	uniform_int_distribution<> rand(1, nr);
 	
 	int i,v,v_loss;
 	int remove_v,remove_loss;
-	remove_v=remove_cand[Rand(nr)+1];
+	remove_v=remove_cand[rand(Gn)];
 	remove_loss=abs(dscore[remove_v]);
 	
 	for(;times--;){
-		v=remove_cand[Rand(nr)+1];
+		v=remove_cand[rand(Gn)];
 		if(tabu[v])continue;
 		v_loss=abs(dscore[v]);
 		if(v_loss<remove_loss||
@@ -283,7 +293,7 @@ void ConstructVC(int tries){
 	for(;tries--;){
 		memset(tmp_in_cover,0,sizeof(bool)*(n+1));
 		tmp_nc=0;
-		random_shuffle(edge_ind_seq+1,edge_ind_seq+m+1,Rand);
+		shuffle(edge_ind_seq+1,edge_ind_seq+m+1,Gn);
 		for(i=1;i<=m;++i){
 			u=be[edge_ind_seq[i]].u,v=be[edge_ind_seq[i]].v;
 			if(tmp_in_cover[u]||tmp_in_cover[v])continue;
@@ -436,7 +446,7 @@ void Initialize(){
 }
 
 int main(){
-	while(cin>>on>>om){
+	while((on = read_u()) && (om = read_u())){
 		Initialize();
 		Input();
 		InitRevGraph();
